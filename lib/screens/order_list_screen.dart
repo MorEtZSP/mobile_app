@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import '../services/order_service.dart';
+import '../models/order.dart';
 import 'add_order_screen.dart';
-import 'order_detail_screen.dart';
-import 'edit_order_screen.dart';
-import '../models/order.dart'; // Импортируем модель Order
+import 'package:firebase_auth/firebase_auth.dart';
+import '../services/auth_service.dart'; // Импортируем сервис для работы с авторизацией
 
 class OrderListScreen extends StatefulWidget {
   @override
@@ -10,183 +11,78 @@ class OrderListScreen extends StatefulWidget {
 }
 
 class _OrderListScreenState extends State<OrderListScreen> {
-  List<Order> orders = [
-    Order(
-      id: 1,
-      clientId: '1',
-      employeeId: '1',
-      address: 'Address 1',
-      description: 'Description 1',
-      price: 100.0,
-      status: 'pending',
-    ),
-    Order(
-      id: 2,
-      clientId: '2',
-      employeeId: '2',
-      address: 'Address 2',
-      description: 'Description 2',
-      price: 150.0,
-      status: 'completed',
-    ),
-    Order(
-      id: 3,
-      clientId: '3',
-      employeeId: '3',
-      address: 'Address 3',
-      description: 'Description 3',
-      price: 200.0,
-      status: 'in_progress',
-    ),
-  ];
+  final OrderService _orderService = OrderService();
+  final AuthService _authService = AuthService(); // Создаем экземпляр AuthService
 
-  // Фильтрационные переменные
-  String clientIdFilter = '';
-  String employeeIdFilter = '';
-  String addressFilter = '';
-  String descriptionFilter = '';
-  double priceFilter = 0.0;
+  void _openAddOrderScreen() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AddOrderScreen()),
+    );
 
-  // Метод для фильтрации заказов
-  List<Order> getFilteredOrders() {
-    return orders.where((order) {
-      final matchesClientId = order.clientId.contains(clientIdFilter);
-      final matchesEmployeeId = order.employeeId.contains(employeeIdFilter);
-      final matchesAddress = order.address.contains(addressFilter);
-      final matchesDescription = order.description.contains(descriptionFilter);
-      final matchesPrice = order.price >= priceFilter;
-
-      return matchesClientId && matchesEmployeeId && matchesAddress &&
-          matchesDescription && matchesPrice;
-    }).toList();
+    if (result == true) {
+      setState(() {});
+    }
   }
 
-  // Обновление состояния фильтров
-  void _applyFilters() {
-    setState(() {});
+  // Функция для выхода из аккаунта
+  void _logout() async {
+    await _authService.logout(); // Вызываем метод logout из AuthService
+    Navigator.pushReplacementNamed(context, '/login'); // Перенаправляем на экран авторизации
   }
 
   @override
   Widget build(BuildContext context) {
-    final filteredOrders = getFilteredOrders();
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Orders'),
+        title: const Text('Заказы'),
+        automaticallyImplyLeading: false, // Убираем кнопку "Назад"
       ),
-      body: Column(
+      body: FutureBuilder<List<Order>>(
+        future: _orderService.getOrders(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Ошибка: ${snapshot.error}'));
+          }
+          final orders = snapshot.data ?? [];
+          if (orders.isEmpty) {
+            return const Center(child: Text('Нет заказов'));
+          }
+          return ListView.builder(
+            itemCount: orders.length,
+            itemBuilder: (context, index) {
+              final order = orders[index];
+              return ListTile(
+                title: Text(order.description),
+                subtitle: Text('Статус: ${order.status}'),
+                onTap: () {
+                  Navigator.pushNamed(context, '/orderDetail', arguments: order);
+                },
+              );
+            },
+          );
+        },
+      ),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          // Фильтры в раскрывающемся меню
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ExpansionTile(
-              title: const Text('Filters'),
-              children: [
-                TextField(
-                  decoration: const InputDecoration(labelText: 'Client ID'),
-                  onChanged: (value) {
-                    clientIdFilter = value;
-                    _applyFilters();
-                  },
-                ),
-                TextField(
-                  decoration: const InputDecoration(labelText: 'Employee ID'),
-                  onChanged: (value) {
-                    employeeIdFilter = value;
-                    _applyFilters();
-                  },
-                ),
-                TextField(
-                  decoration: const InputDecoration(labelText: 'Address'),
-                  onChanged: (value) {
-                    addressFilter = value;
-                    _applyFilters();
-                  },
-                ),
-                TextField(
-                  decoration: const InputDecoration(labelText: 'Description'),
-                  onChanged: (value) {
-                    descriptionFilter = value;
-                    _applyFilters();
-                  },
-                ),
-                Row(
-                  children: [
-                    const Text('Price:'),
-                    Expanded(
-                      child: Slider(
-                        value: priceFilter,
-                        min: 0,
-                        max: 500.0,
-                        onChanged: (value) {
-                          setState(() {
-                            priceFilter = value;
-                          });
-                          _applyFilters();
-                        },
-                      ),
-                    ),
-                    Text('\$${priceFilter.toStringAsFixed(2)}'),
-                  ],
-                ),
-              ],
-            ),
+          // Кнопка добавления заказа
+          FloatingActionButton.extended(
+            onPressed: _openAddOrderScreen,
+            label: const Text('Добавить заказ'),
+            icon: const Icon(Icons.add),
           ),
-          // Список заказов
-          Expanded(
-            child: ListView.builder(
-              itemCount: filteredOrders.length,
-              itemBuilder: (context, index) {
-                final order = filteredOrders[index];
-                return ListTile(
-                  title: Text('Order #${order.id}'),
-                  subtitle: Text('Client ID: ${order.clientId}\nStatus: ${order.status}'),
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/orderDetail',
-                      arguments: order,
-                    );
-                  },
-                  trailing: IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EditOrderScreen(order: order),
-                        ),
-                      ).then((updatedOrder) {
-                        if (updatedOrder != null) {
-                          setState(() {
-                            int index = orders.indexWhere((o) => o.id == updatedOrder.id);
-                            if (index != -1) {
-                              orders[index] = updatedOrder;
-                            }
-                          });
-                        }
-                      });
-                    },
-                  ),
-                );
-              },
-            ),
+          const SizedBox(height: 16),
+          // Кнопка выхода
+          FloatingActionButton(
+            onPressed: _logout,
+            child: const Icon(Icons.exit_to_app),
+            backgroundColor: Colors.red,
           ),
         ],
-      ),
-      // Кнопка добавления заказа внизу справа
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/add_order').then((newOrder) {
-            if (newOrder != null) {
-              setState(() {
-                orders.add(newOrder as Order);
-              });
-            }
-          });
-        },
-        child: const Icon(Icons.add),
-        tooltip: 'Add Order',
       ),
     );
   }

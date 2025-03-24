@@ -1,21 +1,27 @@
-import '../models/order.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/order.dart' as local;
 
 class OrderService {
-  List<Order> filterOrdersByStatus(List<Order> orders, String status) {
-    return orders.where((order) => order.status == status).toList();
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  // Получение всех заказов
+  Future<List<local.Order>> getOrders() async {
+    QuerySnapshot snapshot = await _db.collection('orders').get();
+    return snapshot.docs.map((doc) => local.Order.fromFirestore(doc.id, doc.data() as Map<String, dynamic>)).toList();
   }
 
-  void updateOrderStatus(Order order, String newStatus) {
-    // Пересоздаем объект Order с обновленным статусом
-    order = Order(
-      id: order.id,
-      clientId: order.clientId,
-      employeeId: order.employeeId,
-      address: order.address,
-      description: order.description,
-      price: order.price,
-      status: newStatus, // новый статус
-    );
-    print('Order ${order.id} status updated to $newStatus');
+  // Добавление нового заказа
+  Future<void> addOrder(local.Order order) async {
+    await _db.collection('orders').add(order.toMap());
+  }
+
+  // Обновление статуса заказа
+  Future<void> updateOrderStatus(String orderId, String newStatus) async {
+    await _db.collection('orders').doc(orderId).update({'status': newStatus});
+  }
+
+  // Удаление заказа
+  Future<void> deleteOrder(String orderId) async {
+    await _db.collection('orders').doc(orderId).delete();
   }
 }

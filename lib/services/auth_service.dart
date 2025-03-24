@@ -1,53 +1,33 @@
+import 'package:firebase_auth/firebase_auth.dart';
+
 class AuthService {
-  static final Map<String, String> _users = {
-    'test@example.com': 'password123',
-    'admin@example.com': 'admin123',
-  };
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  static final Map<String, String> _userNames = {
-    'test@example.com': 'John Doe',
-    'admin@example.com': 'Jane Doe',
-  };
-
-  String? _loggedInUser;
-
-  bool login(String email, String password) {
-    if (_users.containsKey(email) && _users[email] == password) {
-      _loggedInUser = email;
-      print('Login successful for $email');
-      return true;
+  // Регистрация пользователя
+  Future<String?> register(String email, String password) async {
+    try {
+      await _auth.createUserWithEmailAndPassword(email: email, password: password);
+      return null; // Успех
+    } on FirebaseAuthException catch (e) {
+      return e.message; // Ошибка
     }
-    print('Login failed for $email');
-    return false;
   }
 
-  bool register(String name, String email, String password) {
-    if (_users.containsKey(email)) {
-      print('Email already exists');
-      return false;
+  // Вход пользователя
+  Future<String?> login(String email, String password) async {
+    try {
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      return null; // Успех
+    } on FirebaseAuthException catch (e) {
+      return e.message; // Ошибка
     }
-    _users[email] = password;
-    _userNames[email] = name;  // Добавляем имя при регистрации
-    print('Registration successful for $email');
-    return true;
   }
 
-  void logout() {
-    _loggedInUser = null;
-    print('User logged out');
+  // Выход пользователя
+  Future<void> logout() async {
+    await _auth.signOut();
   }
 
-  String? get loggedInUser => _loggedInUser;
-
-  String? getUserName(String email) {
-    return _userNames[email];  // Возвращаем имя пользователя
-  }
-
-  // Новый метод для получения имени текущего пользователя
-  String? getLoggedInUserName() {
-    if (_loggedInUser != null) {
-      return _userNames[_loggedInUser!];
-    }
-    return null;  // Если пользователь не авторизован
-  }
+  // Проверка авторизованного пользователя
+  User? get currentUser => _auth.currentUser;
 }

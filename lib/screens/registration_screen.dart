@@ -1,6 +1,5 @@
-// registration_screen.dart
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';  // Импортируем AuthService
+import '../services/auth_service.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({Key? key}) : super(key: key);
@@ -10,24 +9,22 @@ class RegistrationScreen extends StatefulWidget {
 }
 
 class _RegistrationScreenState extends State<RegistrationScreen> {
-  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final AuthService _authService = AuthService();  // Экземпляр AuthService
+  final AuthService _authService = AuthService();
 
   String _errorMessage = '';
 
-  void _register() {
-    final name = _nameController.text;
-    final email = _emailController.text;
-    final password = _passwordController.text;
+  void _register() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-    if (_authService.register(name, email, password)) {
-      // После регистрации перенаправляем на экран логина
-      Navigator.pushNamed(context, '/login');
+    String? error = await _authService.register(email, password);
+    if (error == null) {
+      Navigator.pushReplacementNamed(context, '/login'); // Перенаправление
     } else {
       setState(() {
-        _errorMessage = 'Email already exists';
+        _errorMessage = error;
       });
     }
   }
@@ -35,48 +32,26 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Register'),
-      ),
+      appBar: AppBar(title: const Text('Register')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Full Name',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16.0),
-            TextField(
               controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: 'Email'),
             ),
             const SizedBox(height: 16.0),
             TextField(
               controller: _passwordController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: 'Password'),
             ),
             const SizedBox(height: 16.0),
-            ElevatedButton(
-              onPressed: _register,
-              child: const Text('Register'),
-            ),
+            ElevatedButton(onPressed: _register, child: const Text('Register')),
             if (_errorMessage.isNotEmpty)
-              Text(
-                _errorMessage,
-                style: const TextStyle(color: Colors.red),
-              ),
+              Text(_errorMessage, style: const TextStyle(color: Colors.red)),
           ],
         ),
       ),

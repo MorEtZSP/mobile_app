@@ -1,5 +1,5 @@
-// login_screen.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -16,17 +16,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String _errorMessage = '';
 
-  void _login() {
-    final email = _emailController.text;
-    final password = _passwordController.text;
+  void _login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-    if (_authService.login(email, password)) {
-      String? userName = _authService.getUserName(email);  // Получаем имя пользователя через AuthService
-      print('Logged in as $userName');  // Можно использовать имя пользователя для отображения
-      Navigator.pushNamed(context, '/orders');
+    String? error = await _authService.login(email, password);
+    if (error == null) {
+      Navigator.pushReplacementNamed(context, '/orders'); // Перенаправление
     } else {
       setState(() {
-        _errorMessage = 'Invalid email or password';
+        _errorMessage = error;
       });
     }
   }
@@ -34,9 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-      ),
+      appBar: AppBar(title: const Text('Login')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -44,35 +41,21 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: 'Email'),
             ),
             const SizedBox(height: 16.0),
             TextField(
               controller: _passwordController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: 'Password'),
             ),
             const SizedBox(height: 16.0),
-            ElevatedButton(
-              onPressed: _login,
-              child: const Text('Login'),
-            ),
+            ElevatedButton(onPressed: _login, child: const Text('Login')),
             if (_errorMessage.isNotEmpty)
-              Text(
-                _errorMessage,
-                style: const TextStyle(color: Colors.red),
-              ),
+              Text(_errorMessage, style: const TextStyle(color: Colors.red)),
             TextButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/register');
-              },
-              child: const Text('Don\'t have an account? Register'),
+              onPressed: () => Navigator.pushNamed(context, '/register'),
+              child: const Text("Don't have an account? Register"),
             ),
           ],
         ),
