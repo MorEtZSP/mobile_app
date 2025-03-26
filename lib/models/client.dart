@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Client {
   final String id;
   final String name;
@@ -15,6 +13,7 @@ class Client {
 
   Map<String, dynamic> toMap() {
     return {
+      'id': id, // Include ID for SQLite
       'name': name,
       'email': email,
       'phone': phone,
@@ -27,6 +26,15 @@ class Client {
       name: data['name'] ?? '',
       email: data['email'] ?? '',
       phone: data['phone'] ?? '',
+    );
+  }
+
+  factory Client.fromMap(Map<String, dynamic> map) {
+    return Client(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      email: map['email'] ?? '',
+      phone: map['phone'] ?? '',
     );
   }
 }

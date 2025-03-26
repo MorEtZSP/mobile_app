@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/order.dart';
 import '../models/client.dart';
 import '../models/employee.dart';
 
-class OrderDetailScreen extends StatelessWidget {
+class OrderDetailScreen extends StatefulWidget {
   final Order order;
   final Future<Client> clientFuture;
   final Future<Employee> employeeFuture;
@@ -16,27 +17,53 @@ class OrderDetailScreen extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  _OrderDetailScreenState createState() => _OrderDetailScreenState();
+}
+
+class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  bool _isOnline = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkConnectivity();
+  }
+
+  Future<void> _checkConnectivity() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    setState(() {
+      _isOnline = connectivityResult != ConnectivityResult.none;
+    });
+    Connectivity().onConnectivityChanged.listen((result) {
+      setState(() {
+        _isOnline = result != ConnectivityResult.none;
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Детали заказа'),
+        title: Text('Детали заказа${_isOnline ? '' : ' (Offline)'}'),
         actions: [
-          // Добавляем кнопку редактирования в AppBar
           IconButton(
             icon: const Icon(Icons.edit),
-            onPressed: () {
-              // Переход на экран редактирования с передачей текущего заказа
+            onPressed: _isOnline
+                ? () {
               Navigator.pushNamed(
                 context,
                 '/edit_order',
-                arguments: order,
+                arguments: widget.order,
               );
-            },
+            }
+                : null, // Disable editing when offline
+            tooltip: _isOnline ? 'Редактировать' : 'Редактирование недоступно оффлайн',
           ),
         ],
       ),
       body: FutureBuilder(
-        future: Future.wait([clientFuture, employeeFuture]),
+        future: Future.wait([widget.clientFuture, widget.employeeFuture]),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -53,13 +80,13 @@ class OrderDetailScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Номер заказа: ${order.id}'),
+                Text('Номер заказа: ${widget.order.id}'),
                 Text('Клиент: ${client.name}'),
                 Text('Сотрудник: ${employee.name}'),
-                Text('Адрес: ${order.address}'),
-                Text('Описание: ${order.description}'),
-                Text('Цена: ₽${order.price}'),
-                Text('Статус: ${order.status}'),
+                Text('Адрес: ${widget.order.address}'),
+                Text('Описание: ${widget.order.description}'),
+                Text('Цена: ₽${widget.order.price}'),
+                Text('Статус: ${widget.order.status}'),
               ],
             ),
           );

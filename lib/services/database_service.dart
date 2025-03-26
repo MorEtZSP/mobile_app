@@ -29,15 +29,15 @@ class DatabaseService {
     await _db.collection('orders').doc(order.id).update(order.toMap());
   }
 
-  // Добавление клиента
-  Future<void> addClient(Client client) async {
-    await _db.collection('clients').add(client.toMap());
-  }
-
-  // Добавление сотрудника
-  Future<void> addEmployee(Employee employee) async {
-    await _db.collection('employees').add(employee.toMap());
-  }
+  // // Добавление клиента
+  // Future<void> addClient(Client client) async {
+  //   await _db.collection('clients').add(client.toMap());
+  // }
+  //
+  // // Добавление сотрудника
+  // Future<void> addEmployee(Employee employee) async {
+  //   await _db.collection('employees').add(employee.toMap());
+  // }
 
   // Добавление заказа
   Future<void> addOrder(app_models.Order order) async {

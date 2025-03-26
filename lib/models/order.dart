@@ -1,11 +1,11 @@
 class Order {
-  final String id;
-  final String clientId;
-  final String employeeId;
-  final String address;
-  final String description;
-  final double price;
-  final String status;
+  String id; // Removed final to allow mutability
+  String clientId;
+  String employeeId;
+  String address;
+  String description;
+  double price;
+  String status;
 
   Order({
     required this.id,
@@ -17,9 +17,10 @@ class Order {
     required this.status,
   });
 
-  // Конвертация объекта в Map для Firestore
+  // Convert object to Map for Firestore/SQLite
   Map<String, dynamic> toMap() {
     return {
+      'id': id, // Added for SQLite compatibility
       'clientId': clientId,
       'employeeId': employeeId,
       'address': address,
@@ -29,16 +30,29 @@ class Order {
     };
   }
 
-  // Создание объекта Order из документа Firestore
+  // Create Order from Firestore document
   factory Order.fromFirestore(String id, Map<String, dynamic> data) {
     return Order(
       id: id,
-      clientId: data['clientId'] ?? '', // Преобразуем int в String
+      clientId: data['clientId'] ?? '',
       employeeId: data['employeeId'] ?? '',
       address: data['address'] ?? '',
       description: data['description'] ?? '',
-      price: (data['price'] as num?)?.toDouble() ?? 0.0, // Приводим int/num к double
+      price: (data['price'] as num?)?.toDouble() ?? 0.0,
       status: data['status'] ?? '',
+    );
+  }
+
+  // Create Order from SQLite map
+  factory Order.fromMap(Map<String, dynamic> map) {
+    return Order(
+      id: map['id'] ?? '',
+      clientId: map['clientId'] ?? '',
+      employeeId: map['employeeId'] ?? '',
+      address: map['address'] ?? '',
+      description: map['description'] ?? '',
+      price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      status: map['status'] ?? '',
     );
   }
 }

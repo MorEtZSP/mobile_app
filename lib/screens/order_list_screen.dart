@@ -3,7 +3,8 @@ import '../services/order_service.dart';
 import '../models/order.dart';
 import 'add_order_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../services/auth_service.dart'; // Импортируем сервис для работы с авторизацией
+import '../services/auth_service.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class OrderListScreen extends StatefulWidget {
   @override
@@ -12,31 +13,55 @@ class OrderListScreen extends StatefulWidget {
 
 class _OrderListScreenState extends State<OrderListScreen> {
   final OrderService _orderService = OrderService();
-  final AuthService _authService = AuthService(); // Создаем экземпляр AuthService
+  final AuthService _authService = AuthService();
+  bool _isOnline = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkConnectivity();
+    _orderService.syncOrders(); // Sync when screen loads if online
+  }
+
+  Future<void> _checkConnectivity() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    setState(() {
+      _isOnline = connectivityResult != ConnectivityResult.none;
+    });
+    // Listen for connectivity changes
+    Connectivity().onConnectivityChanged.listen((result) {
+      setState(() {
+        _isOnline = result != ConnectivityResult.none;
+      });
+      if (_isOnline) _orderService.syncOrders();
+    });
+  }
 
   void _openAddOrderScreen() async {
+    if (!_isOnline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cannot add order while offline')),
+      );
+      return;
+    }
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => AddOrderScreen()),
     );
-
-    if (result == true) {
-      setState(() {});
-    }
+    if (result == true) setState(() {});
   }
 
-  // Функция для выхода из аккаунта
   void _logout() async {
-    await _authService.logout(); // Вызываем метод logout из AuthService
-    Navigator.pushReplacementNamed(context, '/login'); // Перенаправляем на экран авторизации
+    await _authService.logout();
+    Navigator.pushReplacementNamed(context, '/login');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Заказы'),
-        automaticallyImplyLeading: false, // Убираем кнопку "Назад"
+        title: Text('Заказы${_isOnline ? '' : ' (Offline)'}'),
+        automaticallyImplyLeading: false,
       ),
       body: FutureBuilder<List<Order>>(
         future: _orderService.getOrders(),
@@ -58,9 +83,9 @@ class _OrderListScreenState extends State<OrderListScreen> {
               return ListTile(
                 title: Text(order.description),
                 subtitle: Text('Статус: ${order.status}'),
-                onTap: () {
-                  Navigator.pushNamed(context, '/orderDetail', arguments: order);
-                },
+                onTap: _isOnline
+                    ? () => Navigator.pushNamed(context, '/orderDetail', arguments: order)
+                    : null, // Disable navigation when offline
               );
             },
           );
@@ -69,14 +94,13 @@ class _OrderListScreenState extends State<OrderListScreen> {
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          // Кнопка добавления заказа
-          FloatingActionButton.extended(
-            onPressed: _openAddOrderScreen,
-            label: const Text('Добавить заказ'),
-            icon: const Icon(Icons.add),
-          ),
+          if (_isOnline)
+            FloatingActionButton.extended(
+              onPressed: _openAddOrderScreen,
+              label: const Text('Добавить заказ'),
+              icon: const Icon(Icons.add),
+            ),
           const SizedBox(height: 16),
-          // Кнопка выхода
           FloatingActionButton(
             onPressed: _logout,
             child: const Icon(Icons.exit_to_app),

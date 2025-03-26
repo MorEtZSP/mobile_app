@@ -8,8 +8,9 @@ import 'screens/order_detail_screen.dart';
 import 'screens/add_order_screen.dart';
 import 'screens/edit_order_screen.dart';
 import 'models/order.dart';
-import 'firebase_options.dart'; // Подключаем Firebase options
+import 'firebase_options.dart';
 import '../services/database_service.dart';
+import '../services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,12 +26,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authService = AuthService();
     return MaterialApp(
       title: 'Cleaning Orders',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      initialRoute: FirebaseAuth.instance.currentUser == null ? '/login' : '/orders',
+      initialRoute: authService.currentUser == null ? '/login' : '/orders',
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/login':
